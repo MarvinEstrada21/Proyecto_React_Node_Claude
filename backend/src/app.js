@@ -13,9 +13,23 @@ const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+// FRONTEND_ORIGIN admite una lista separada por comas (ej. para permitir a
+// la vez localhost y la IP de red desde donde se accede via VM). Sigue sin
+// ser un comodin: solo se aceptan los origenes listados explicitamente.
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error('Origen no permitido por CORS.'));
+    },
     credentials: true,
   })
 );
